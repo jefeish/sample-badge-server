@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Badge Server Test Page</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      body {
+        margin: 0 auto;
+        max-width: 44rem;
+        padding: 2rem 1.5rem 3rem;
+        line-height: 1.5;
+      }
+      h1 {
+        font-size: 1.4rem;
+        margin-bottom: 0.25rem;
+      }
+      p.lede {
+        margin-top: 0;
+        opacity: 0.75;
+      }
+      form {
+        display: grid;
+        gap: 0.75rem 1rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      label {
+        display: flex;
+        flex-direction: column;
+        font-size: 0.85rem;
+        gap: 0.25rem;
+      }
+      input,
+      select,
+      button {
+        font: inherit;
+        padding: 0.45rem 0.55rem;
+        border: 1px solid rgba(128, 128, 128, 0.5);
+        border-radius: 6px;
+        background: transparent;
+        color: inherit;
+      }
+      button {
+        grid-column: 1 / -1;
+        cursor: pointer;
+        font-weight: 600;
+        background: #2563eb;
+        border-color: #2563eb;
+        color: #fff;
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: progress;
+      }
+      #status {
+        margin-top: 1.5rem;
+        font-size: 0.9rem;
+      }
+      #status.error {
+        color: #dc2626;
+      }
+      #preview {
+        margin-top: 0.75rem;
+        min-height: 24px;
+      }
+      h2 {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        opacity: 0.7;
+        margin: 1.5rem 0 0;
+      }
+      pre {
+        margin-top: 1rem;
+        padding: 0.75rem;
+        border-radius: 6px;
+        background: rgba(128, 128, 128, 0.15);
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+        font-size: 0.78rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Badge Server Test Page</h1>
+    <p class="lede">Sends a POST request to <code>/badge-server</code> and renders the returned SVG.</p>
+
+    <form id="badge-form">
+      <label style="grid-column: 1 / -1">
+        Endpoint URL
+        <input name="endpoint" id="endpoint" />
+      </label>
+      <label>
+        User
+        <input name="user" value="demo" autocomplete="username" />
+      </label>
+      <label>
+        Password
+        <input name="password" type="password" value="s3cret" autocomplete="current-password" />
+      </label>
+      <label>
+        Label
+        <input name="label" value="build" maxlength="64" />
+      </label>
+      <label>
+        Message
+        <input name="message" value="passing" maxlength="64" />
+      </label>
+      <label>
+        Color
+        <input name="color" value="brightgreen" />
+      </label>
+      <label>
+        Label color
+        <input name="labelColor" value="#555" />
+      </label>
+      <label>
+        Style
+        <select name="style">
+          <option>flat</option>
+          <option>plastic</option>
+          <option>flat-square</option>
+          <option>for-the-badge</option>
+          <option>social</option>
+        </select>
+      </label>
+      <button type="submit">Send POST /badge-server</button>
+    </form>
+
+    <h2 id="request-heading" hidden>Request sent</h2>
+    <pre id="request" hidden></pre>
+
+    <div id="status"></div>
+    <div id="preview"></div>
+    <h2 id="source-heading" hidden>Response SVG</h2>
+    <pre id="source" hidden></pre>
+
+    <script>
+      const form = document.getElementById('badge-form');
+      const statusEl = document.getElementById('status');
+      const preview = document.getElementById('preview');
+      const source = document.getElementById('source');
+      const sourceHeading = document.getElementById('source-heading');
+      const requestEl = document.getElementById('request');
+      const requestHeading = document.getElementById('request-heading');
+      const endpointInput = document.getElementById('endpoint');
+      let objectUrl = null;
+
+      // A file:// or Live Preview page cannot use a relative path, so fall back to the dev port.
+      endpointInput.value = location.protocol.startsWith('http')
+        ? new URL('/badge-server', location.origin).href
+        : 'http://localhost:5000/badge-server';
+
+      function reset() {
+        preview.replaceChildren();
+        source.hidden = true;
+        sourceHeading.hidden = true;
+        source.textContent = '';
+        requestEl.hidden = true;
+        requestHeading.hidden = true;
+        requestEl.textContent = '';
+        if (objectUrl) {
+          URL.revokeObjectURL(objectUrl);
+          objectUrl = null;
+        }
+      }
+
+      function showRequest(url, body) {
+        const target = new URL(url);
+        requestEl.textContent = [
+          `POST ${target.pathname}${target.search} HTTP/1.1`,
+          `Host: ${target.host}`,
+          'Content-Type: application/json',
+          `Content-Length: ${new Blob([body]).size}`,
+          '',
+          body
+        ].join('\n');
+        requestEl.hidden = false;
+        requestHeading.hidden = false;
+      }
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        reset();
+
+        const button = form.querySelector('button');
+        button.disabled = true;
+        statusEl.className = '';
+        statusEl.textContent = 'Sending…';
+
+        const payload = Object.fromEntries(new FormData(form).entries());
+        const endpoint = payload.endpoint;
+        delete payload.endpoint;
+        const body = JSON.stringify(payload, null, 2);
+
+        try {
+          showRequest(endpoint, body);
+        } catch (err) {
+          statusEl.className = 'error';
+          statusEl.textContent = `Invalid endpoint URL: ${endpoint}`;
+          button.disabled = false;
+          return;
+        }
+
+        try {
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body
+          });
+
+          const text = await response.text();
+
+          if (!response.ok) {
+            statusEl.className = 'error';
+            statusEl.textContent = `HTTP ${response.status} — ${text}`;
+            return;
+          }
+
+          statusEl.textContent = `HTTP ${response.status} · ${response.headers.get('content-type')}`;
+
+          // Render through a blob URL so the response is never injected into this document.
+          objectUrl = URL.createObjectURL(new Blob([text], { type: 'image/svg+xml' }));
+          const img = document.createElement('img');
+          img.src = objectUrl;
+          img.alt = 'Generated badge';
+          preview.append(img);
+
+          source.textContent = text;
+          source.hidden = false;
+          sourceHeading.hidden = false;
+        } catch (err) {
+          statusEl.className = 'error';
+          statusEl.textContent = `Request failed: ${err.message}`;
+        } finally {
+          button.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "name": "sample-badge-server",
+  "version": "1.0.0",
+  "description": "Minimal POST-only web server that authenticates a request and returns a generated SVG badge.",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "badge-maker": "^4.1.0",
+    "express": "^4.22.2"
+  },
+  "license": "MIT"
+}
