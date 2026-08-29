@@ -151,10 +151,11 @@
       const endpointInput = document.getElementById('endpoint');
       let objectUrl = null;
 
-      // A file:// or Live Preview page cannot use a relative path, so fall back to the dev port.
+      // Post to this page's own directory so a proxy subpath mount keeps working;
+      // a file:// page has no usable base, so fall back to the dev port.
       endpointInput.value = location.protocol.startsWith('http')
-        ? new URL('/badge-server', location.origin).href
-        : 'http://localhost:5000/badge-server';
+        ? new URL('.', location.href).href
+        : 'http://localhost:5000/';
 
       function reset() {
         preview.replaceChildren();

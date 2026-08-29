@@ -54,7 +54,7 @@ app.use(express.urlencoded({ extended: false, limit: '10kb' }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // Open CORS: the endpoint takes no cookies or auth headers, credentials travel in the body.
-app.use('/badge-server', (req, res, next) => {
+app.use((req, res, next) => {
   res.set('Access-Control-Allow-Origin', '*');
   res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.set('Access-Control-Allow-Headers', 'Content-Type');
@@ -63,7 +63,10 @@ app.use('/badge-server', (req, res, next) => {
   next();
 });
 
-app.post('/badge-server', (req, res) => {
+// Root is included because a reverse proxy may strip the /badge-server prefix.
+const BADGE_PATHS = ['/', '/badge-server'];
+
+app.post(BADGE_PATHS, (req, res) => {
   const body = req.body && typeof req.body === 'object' ? req.body : {};
 
   if (!isAuthorized(body)) {
@@ -91,8 +94,8 @@ app.post('/badge-server', (req, res) => {
   res.send(svg);
 });
 
-// Any other method on /badge-server is rejected explicitly.
-app.all('/badge-server', (req, res) => {
+// Any other method on a badge path is rejected explicitly.
+app.all(BADGE_PATHS, (req, res) => {
   res.set('Allow', 'POST');
   res.status(405).type('application/json').send({ error: 'only POST is supported' });
 });
