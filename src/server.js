@@ -51,7 +51,10 @@ const app = express();
 app.disable('x-powered-by');
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: false, limit: '10kb' }));
-app.use(express.static(path.join(__dirname, '..', 'public')));
+const staticFiles = express.static(path.join(__dirname, '..', 'public'));
+app.use(staticFiles);
+// Also served under the prefix so the UI works when a proxy forwards /badge-server unchanged.
+app.use('/badge-server', staticFiles);
 
 // Open CORS: the endpoint takes no cookies or auth headers, credentials travel in the body.
 app.use((req, res, next) => {
