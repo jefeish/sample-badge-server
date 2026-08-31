@@ -56,6 +56,11 @@ curl -X POST http://localhost:3000/badge-server \
   -o badge.svg
 ```
 
+#### [Index.html](public/index.htl) test page
+
+<img width="789" height="1035" alt="Screenshot 2026-08-31 at 08 38 47" src="https://github.com/user-attachments/assets/cc4c11f1-d434-4b42-834e-1230cb96f5d5" />
+
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
