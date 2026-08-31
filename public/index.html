@@ -151,11 +151,11 @@
       const endpointInput = document.getElementById('endpoint');
       let objectUrl = null;
 
-      // Post to this page's own directory so a proxy subpath mount keeps working;
-      // a file:// page has no usable base, so fall back to the dev port.
+      // Resolve the route against the page's own directory, so the endpoint lands on
+      // /badge-server whether the page is served at the site root or under a proxy prefix.
       endpointInput.value = location.protocol.startsWith('http')
-        ? new URL('.', location.href).href
-        : 'http://localhost:5000/';
+        ? new URL('badge-server', new URL('.', location.href)).href
+        : 'http://localhost:5000/badge-server';
 
       function reset() {
         preview.replaceChildren();
